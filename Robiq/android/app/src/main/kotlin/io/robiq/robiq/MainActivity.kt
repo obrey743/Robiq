@@ -1,0 +1,5 @@
+package io.robiq.robiq
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
