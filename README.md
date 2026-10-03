@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 ROBIQ
+# ROBIQ
 
 ### Universal Robotics Controller
 
@@ -23,30 +23,30 @@ The app connects over **Bluetooth Low Energy** and **Wi-Fi**. It gives you simpl
 
 ROBIQ works with many kinds of robots and embedded systems. It suits robotics projects, teaching, prototyping and IoT development.
 
-## ✨ Features
+## Features
 
-| | Feature | Description |
-|---|---------|-------------|
-| 📡 | **Bluetooth LE** | Scan for and connect to devices using the Nordic UART Service or HM-10 (`FFE0/FFE1`) modules |
-| 📶 | **Wi-Fi** | Connect to any device that runs a WebSocket server (e.g. `ws://192.168.4.1:81`) |
-| 🕹️ | **Rover control** | Virtual joystick with rate-limited commands, an adjustable max speed and an emergency stop |
-| 🦾 | **Robotic arm control** | A slider for each servo joint, a home position, and pose save/recall |
-| 🔌 | **GPIO panel** | Toggle digital pins and drive PWM outputs on ESP32/Arduino boards |
-| 📈 | **Live telemetry** | Every numeric value the device reports is shown and graphed in real time |
-| 🧾 | **Device log** | Non-JSON output (like `Serial.println`) appears in the app |
-| 🔍 | **Auto-detection** | The device reports its type (rover, arm or generic) and the matching controls open |
-| 🌗 | **Light & dark themes** | Material 3 design |
-| 🧩 | **Open protocol** | A simple JSON protocol you can add to any firmware ([spec](docs/PROTOCOL.md)) |
+| Feature | Description |
+|---------|-------------|
+| **Bluetooth LE** | Scan for and connect to devices using the Nordic UART Service or HM-10 (`FFE0/FFE1`) modules |
+| **Wi-Fi** | Connect to any device that runs a WebSocket server (e.g. `ws://192.168.4.1:81`) |
+| **Rover control** | Virtual joystick with rate-limited commands, an adjustable max speed and an emergency stop |
+| **Robotic arm control** | A slider for each servo joint, a home position, and pose save/recall |
+| **GPIO panel** | Toggle digital pins and drive PWM outputs on ESP32/Arduino boards |
+| **Live telemetry** | Every numeric value the device reports is shown and graphed in real time |
+| **Device log** | Non-JSON output (like `Serial.println`) appears in the app |
+| **Auto-detection** | The device reports its type (rover, arm or generic) and the matching controls open |
+| **Light & dark themes** | Material 3 design |
+| **Open protocol** | A simple JSON protocol you can add to any firmware ([spec](docs/PROTOCOL.md)) |
 
-## 📱 Supported Platforms
+## Supported Platforms
 
 | Android | iOS | macOS | Windows | Linux | Web |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| ✅ BLE + Wi-Fi | ✅ BLE + Wi-Fi | ✅ BLE + Wi-Fi | ⚠️ Wi-Fi\* | ⚠️ Wi-Fi\* | ⚠️ Wi-Fi\* |
+| BLE + Wi-Fi | BLE + Wi-Fi | BLE + Wi-Fi | Wi-Fi\* | Wi-Fi\* | Wi-Fi\* |
 
 \* Bluetooth support on these platforms depends on [`flutter_blue_plus`](https://pub.dev/packages/flutter_blue_plus).
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -75,7 +75,7 @@ flutter run
 
 Then open the **Control** tab to drive your robot, or the **Telemetry** tab to see sensor data.
 
-## 🔧 Firmware
+## Firmware
 
 You'll find ready-to-flash reference sketches in [`firmware/`](firmware):
 
@@ -103,10 +103,9 @@ Send and receive one JSON object per line:
 
 The full specification is in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
-RAC/
 ├── lib/
 │   ├── main.dart                      # Entry point, sets up providers
 │   ├── app.dart                       # MaterialApp and theming
@@ -153,7 +152,7 @@ RAC/
 
 To add a new transport (USB serial, MQTT, TCP…), implement `DeviceConnection` and connect it in `ConnectionManager`.
 
-## 🛣️ Roadmap
+## Roadmap
 
 - [ ] Saved devices and auto-reconnect
 - [ ] Customisable dashboards (buttons, gauges, sliders mapped to commands)
@@ -164,11 +163,11 @@ To add a new transport (USB serial, MQTT, TCP…), implement `DeviceConnection` 
 - [ ] Gamepad and controller support
 - [ ] Localization
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request.
 
-## 📄 License
+## License
 
 ROBIQ is released under the [MIT License](LICENSE).
 
@@ -176,4 +175,4 @@ ROBIQ is released under the [MIT License](LICENSE).
 
 ---
 
-<div align="center">Built with ❤️ and Flutter for makers, students and roboticists.</div>
+<div align="center">Built with Flutter for makers, students and roboticists.</div>
