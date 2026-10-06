@@ -43,7 +43,12 @@ class ControlScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: AppColors.border),
               ),
-              child: view,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: view),
+                  Positioned.fill(child: _ViewportNotice(kind: kind)),
+                ],
+              ),
             ),
           ),
         ),
@@ -83,7 +88,10 @@ class _Header extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        StatusChip(label: label, color: color, dense: true),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: StatusChip(key: ValueKey(label), label: label, color: color, dense: true),
+                        ),
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(robot.nextStepHint, style: AppText.caption, overflow: TextOverflow.ellipsis),
@@ -241,6 +249,134 @@ class _StopButtonState extends State<_StopButton> {
   }
 }
 
+// ── Viewport notices ───────────────────────────────────────────────────────
+
+/// Large, unmistakable message over the robot view when motion is blocked:
+/// a red banner for E-stop/fault, a quiet lock hint when not enabled.
+class _ViewportNotice extends StatelessWidget {
+  const _ViewportNotice({required this.kind});
+
+  final DeviceKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final robot = context.watch<RobotController>();
+    final moving = kind != DeviceKind.generic;
+
+    final Widget? notice = switch (robot.state) {
+      RobotState.estop => const _Banner(
+        icon: Icons.front_hand,
+        title: 'Emergency stop active',
+        detail: 'All motion halted. Make the area safe, then hold Reset.',
+        color: AppColors.danger,
+      ),
+      RobotState.fault => _Banner(
+        icon: Icons.warning_amber_rounded,
+        title: robot.faultReason ?? 'Fault',
+        detail: 'Motion halted. Hold Reset to clear.',
+        color: AppColors.warning,
+      ),
+      RobotState.powerOff => const _Hint(icon: Icons.power_settings_new, text: 'Robot is powered off'),
+      RobotState.idle when moving => const _Hint(icon: Icons.lock_outline, text: 'Hold Enable to move'),
+      RobotState.enabled when moving && robot.mode == OperatingMode.auto && kind == DeviceKind.rover => const _Hint(
+        icon: Icons.smart_toy_outlined,
+        text: 'Driving is manual only',
+      ),
+      _ => null,
+    };
+
+    return IgnorePointer(
+      child: Align(
+        alignment: const Alignment(0, -0.35),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: ScaleTransition(scale: Tween(begin: 0.96, end: 1.0).animate(anim), child: child),
+          ),
+          child: notice ?? const SizedBox.shrink(key: ValueKey('none')),
+        ),
+      ),
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  const _Banner({required this.icon, required this.title, required this.detail, required this.color});
+
+  final IconData icon;
+  final String title;
+  final String detail;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: ValueKey(title),
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.fromLTRB(16, 14, 20, 14),
+      constraints: const BoxConstraints(maxWidth: 420),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(color.withValues(alpha: 0.16), AppColors.surface),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.6)),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 24)],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: AppText.bodyStrong.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(detail, style: AppText.caption),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Hint extends StatelessWidget {
+  const _Hint({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: ValueKey(text),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.text2),
+          const SizedBox(width: 8),
+          Text(text, style: AppText.label.copyWith(color: AppColors.text2)),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Bottom control bar ─────────────────────────────────────────────────────
 
 class _ControlBar extends StatelessWidget {
@@ -253,7 +389,7 @@ class _ControlBar extends StatelessWidget {
     final robot = context.watch<RobotController>();
     final alarms = robot.unacknowledgedAlarms;
 
-    final Widget primary = switch (robot.state) {
+    final Widget primaryButton = switch (robot.state) {
       RobotState.powerOff => AppButton(
         label: 'Power on',
         icon: Icons.power_settings_new,
@@ -271,6 +407,12 @@ class _ControlBar extends StatelessWidget {
       ),
       _ => AppButton(label: 'Disable', icon: Icons.lock, height: 48, expand: true, onPressed: robot.disable),
     };
+
+    // Cross-fade when the next action changes (power on → enable → disable…).
+    final primary = AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      child: KeyedSubtree(key: ValueKey(robot.state), child: primaryButton),
+    );
 
     final mode = Segmented<OperatingMode>(
       height: 40,

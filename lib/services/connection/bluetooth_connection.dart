@@ -18,6 +18,11 @@ class BluetoothConnection implements DeviceConnection {
 
   BluetoothCharacteristic? _writeChar;
   StreamSubscription<List<int>>? _notifySub;
+  // Stateful decoder: a multi-byte UTF-8 character can be split across two
+  // BLE packets, so packets can't be decoded independently.
+  late final ByteConversionSink _decoder = const Utf8Decoder(
+    allowMalformed: true,
+  ).startChunkedConversion(StringConversionSink.fromStringSink(_TextSink(_incoming)));
   StreamSubscription<BluetoothConnectionState>? _stateSub;
   int _mtu = 23;
 
@@ -67,9 +72,7 @@ class BluetoothConnection implements DeviceConnection {
       }
       if (notifyChar != null) {
         await notifyChar.setNotifyValue(true);
-        _notifySub = notifyChar.onValueReceived.listen(
-          (bytes) => _incoming.add(utf8.decode(bytes, allowMalformed: true)),
-        );
+        _notifySub = notifyChar.onValueReceived.listen(_decoder.add);
       }
       _status.add(DeviceConnectionStatus.connected);
     } catch (e) {
@@ -102,4 +105,26 @@ class BluetoothConnection implements DeviceConnection {
     await _incoming.close();
     await _status.close();
   }
+}
+
+/// Forwards decoded text to a stream, skipping empty writes.
+class _TextSink implements StringSink {
+  _TextSink(this._out);
+
+  final StreamController<String> _out;
+
+  @override
+  void write(Object? obj) {
+    final text = '$obj';
+    if (text.isNotEmpty && !_out.isClosed) _out.add(text);
+  }
+
+  @override
+  void writeAll(Iterable<Object?> objects, [String separator = '']) => write(objects.join(separator));
+
+  @override
+  void writeCharCode(int charCode) => write(String.fromCharCode(charCode));
+
+  @override
+  void writeln([Object? obj = '']) => write('$obj\n');
 }

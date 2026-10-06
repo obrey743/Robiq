@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/connection_status_chip.dart';
+import '../../shared/widgets/robiq_logo.dart';
 import '../control/control_screen.dart';
 import '../devices/devices_screen.dart';
 import '../settings/settings_screen.dart';
@@ -42,13 +43,19 @@ class _HomeScreenState extends State<HomeScreen> {
           : AppBar(
               toolbarHeight: 64,
               titleSpacing: 20,
-              title: Text(_titles[_index]),
+              title: Row(
+                children: [
+                  const RobiqMark(size: 30),
+                  const SizedBox(width: 12),
+                  Flexible(child: Text(_titles[_index], overflow: TextOverflow.ellipsis)),
+                ],
+              ),
               actions: const [ConnectionStatusChip(), SizedBox(width: 16)],
             ),
       body: SafeArea(
         bottom: false,
         top: _index == _control,
-        child: IndexedStack(index: _index, children: pages),
+        child: _FadeStack(index: _index, children: pages),
       ),
       bottomNavigationBar: DecoratedBox(
         decoration: const BoxDecoration(
@@ -77,6 +84,37 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Like [IndexedStack] (every page keeps its state) but cross-fades between
+/// pages instead of snapping.
+class _FadeStack extends StatelessWidget {
+  const _FadeStack({required this.index, required this.children});
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var i = 0; i < children.length; i++)
+          IgnorePointer(
+            ignoring: i != index,
+            child: ExcludeSemantics(
+              excluding: i != index,
+              child: AnimatedOpacity(
+                opacity: i == index ? 1 : 0,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                child: children[i],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

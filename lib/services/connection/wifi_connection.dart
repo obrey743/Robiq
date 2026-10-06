@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -26,19 +27,22 @@ class WifiConnection implements DeviceConnection {
   @override
   Future<void> connect() async {
     _status.add(DeviceConnectionStatus.connecting);
+    final channel = WebSocketChannel.connect(Uri.parse('ws://$host:$port'));
     try {
-      final channel = WebSocketChannel.connect(Uri.parse('ws://$host:$port'));
       await channel.ready.timeout(const Duration(seconds: 8));
       _channel = channel;
       _sub = channel.stream.listen(
         // Each WebSocket frame is one message; append a newline so framing
         // matches the BLE transport.
-        (data) => _incoming.add(data is String ? '$data\n' : '${String.fromCharCodes(data)}\n'),
+        (data) =>
+            _incoming.add(data is String ? '$data\n' : '${utf8.decode(data as List<int>, allowMalformed: true)}\n'),
         onDone: () => _status.add(DeviceConnectionStatus.disconnected),
         onError: (_) => _status.add(DeviceConnectionStatus.error),
       );
       _status.add(DeviceConnectionStatus.connected);
     } catch (_) {
+      // Don't leave a half-open socket behind after a timeout.
+      unawaited(channel.sink.close());
       _status.add(DeviceConnectionStatus.error);
       rethrow;
     }

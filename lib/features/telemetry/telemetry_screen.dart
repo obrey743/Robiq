@@ -213,24 +213,38 @@ class _MetricCard extends StatelessWidget {
             child: Sparkline(values: values, color: color),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Text('Min ', style: AppText.caption.copyWith(color: AppColors.text3)),
-              Text(
-                values.reduce(math.min).toStringAsFixed(metric.decimals),
-                style: AppText.mono.copyWith(fontSize: 12),
-              ),
-              const SizedBox(width: 12),
-              Text('Max ', style: AppText.caption.copyWith(color: AppColors.text3)),
-              Text(
-                values.reduce(math.max).toStringAsFixed(metric.decimals),
-                style: AppText.mono.copyWith(fontSize: 12),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, c) => Row(
+              children: [
+                Text('Min ', style: AppText.caption.copyWith(color: AppColors.text3)),
+                Text(
+                  values.reduce(math.min).toStringAsFixed(metric.decimals),
+                  style: AppText.mono.copyWith(fontSize: 12),
+                ),
+                const SizedBox(width: 12),
+                Text('Max ', style: AppText.caption.copyWith(color: AppColors.text3)),
+                Text(
+                  values.reduce(math.max).toStringAsFixed(metric.decimals),
+                  style: AppText.mono.copyWith(fontSize: 12),
+                ),
+                // Only when the card is wide enough to fit it.
+                if (c.maxWidth >= 220 && _span(samples).isNotEmpty) ...[
+                  const Spacer(),
+                  Text(_span(samples), style: AppText.caption.copyWith(color: AppColors.text3)),
+                ],
+              ],
+            ),
           ),
         ],
       ),
     );
+  }
+
+  /// How much history the chart covers, e.g. "Last 60 s".
+  static String _span(List<TelemetrySample> samples) {
+    final secs = samples.last.timestamp.difference(samples.first.timestamp).inSeconds;
+    if (secs < 1) return '';
+    return secs >= 120 ? 'Last ${(secs / 60).round()} min' : 'Last $secs s';
   }
 
   static String _duration(double seconds) {

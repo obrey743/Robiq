@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
+import '../data/models/robot_component.dart';
 import '../data/models/robot_device.dart';
 
 /// Persisted user preferences.
@@ -13,6 +14,13 @@ class SettingsService extends ChangeNotifier {
   final SharedPreferences _prefs;
 
   static Future<SettingsService> load() async => SettingsService._(await SharedPreferences.getInstance());
+
+  /// Whether the first-launch welcome has been shown.
+  bool get onboarded => _prefs.getBool('onboarded') ?? false;
+  set onboarded(bool value) {
+    _prefs.setBool('onboarded', value);
+    notifyListeners();
+  }
 
   String get lastHost => _prefs.getString('lastHost') ?? '192.168.4.1';
   int get lastPort => _prefs.getInt('lastPort') ?? AppConstants.defaultWsPort;
@@ -37,12 +45,29 @@ class SettingsService extends ChangeNotifier {
       return [
         for (final w in jsonDecode(raw) as List) [for (final a in w as List) (a as num).toDouble()],
       ];
-    } on FormatException {
+    } on Object {
+      // Corrupt or from an incompatible version: start with an empty program.
       return [];
     }
   }
 
   set armProgram(List<List<double>> program) => _prefs.setString('armProgram', jsonEncode(program));
+
+  /// Extra parts (lights, horn…) shown as buttons on the console.
+  List<RobotComponent> get components {
+    final raw = _prefs.getString('components');
+    if (raw == null) return RobotComponent.defaults;
+    try {
+      return [for (final c in jsonDecode(raw) as List) RobotComponent.fromJson(c as Map<String, dynamic>)];
+    } on Object {
+      return RobotComponent.defaults;
+    }
+  }
+
+  set components(List<RobotComponent> value) {
+    _prefs.setString('components', jsonEncode([for (final c in value) c.toJson()]));
+    notifyListeners();
+  }
 
   /// Most recently used devices, newest first.
   List<RobotDevice> get recentDevices {

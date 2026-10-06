@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../services/control/robot_controller.dart';
 import '../../services/settings_service.dart';
 import '../../shared/widgets/ui.dart';
+import '../components/components_editor.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -30,6 +31,18 @@ class SettingsScreen extends StatelessWidget {
               divisions: 9,
               format: (v) => '${(v * 100).round()}%',
               onChanged: (v) => settings.maxSpeed = v,
+            ),
+          ],
+        ),
+        const SectionHeader('Components'),
+        GroupedList(
+          children: [
+            ListRow(
+              title: 'Component buttons',
+              subtitle: 'Lights, horn and other parts on the console',
+              leading: Icons.toggle_on_outlined,
+              trailing: const Icon(Icons.chevron_right, color: AppColors.text3),
+              onTap: () => showComponentsEditor(context),
             ),
           ],
         ),

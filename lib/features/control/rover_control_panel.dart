@@ -8,7 +8,9 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/control/robot_controller.dart';
 import '../../shared/widgets/ui.dart';
+import '../components/component_button.dart';
 import 'control_screen.dart';
+import 'widgets/dpad.dart';
 import 'widgets/joystick.dart';
 
 /// Rover-specific buttons for the control bar.
@@ -28,6 +30,7 @@ class RoverControlPanel extends StatefulWidget {
 
 class _RoverControlPanelState extends State<RoverControlPanel> {
   Offset _stick = Offset.zero;
+  Offset _pad = Offset.zero;
   Offset _lastSent = Offset.zero;
   Timer? _timer;
   final List<Offset> _trail = [];
@@ -46,13 +49,18 @@ class _RoverControlPanelState extends State<RoverControlPanel> {
     super.dispose();
   }
 
+  /// The D-pad wins while held, so a resting thumb on the stick can't fight it.
+  Offset get _input => _pad != Offset.zero ? _pad : _stick;
+
   void _flush() {
-    if (_stick == _lastSent) return;
-    _lastSent = _stick;
-    context.read<RobotController>().drive(_stick.dx, -_stick.dy);
+    final input = _input;
+    if (input == _lastSent) return;
+    _lastSent = input;
+    context.read<RobotController>().drive(input.dx, -input.dy);
   }
 
   void _setStick(Offset o) => setState(() => _stick = o);
+  void _setPad(Offset o) => setState(() => _pad = o);
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +68,8 @@ class _RoverControlPanelState extends State<RoverControlPanel> {
     final active = robot.canJog;
 
     // Drop any held input the moment motion is no longer allowed.
-    if (!active && _stick != Offset.zero) {
-      _stick = _lastSent = Offset.zero;
+    if (!active && _input != Offset.zero) {
+      _stick = _pad = _lastSent = Offset.zero;
     }
 
     final pos = robot.position;
@@ -72,18 +80,13 @@ class _RoverControlPanelState extends State<RoverControlPanel> {
       if (_trail.length > 400) _trail.removeAt(0);
     }
 
-    Widget nudge(IconData icon, Offset dir, String tip) => AppIconButton(
-      icon: icon,
-      tooltip: tip,
-      onPress: active ? () => _setStick(dir) : null,
-      onRelease: () => _setStick(Offset.zero),
-    );
-
     final heading = (robot.heading * 180 / math.pi) % 360;
 
     return LayoutBuilder(
       builder: (context, c) {
         final stickSize = (math.min(c.maxWidth, c.maxHeight) * 0.42).clamp(130.0, 200.0);
+        // Match the pad to the stick, but never below a comfortable tap target.
+        final padButton = math.max(44.0, (stickSize - 12) / 3);
         return Stack(
           children: [
             Positioned.fill(
@@ -91,44 +94,52 @@ class _RoverControlPanelState extends State<RoverControlPanel> {
                 painter: _RoverViewPainter(position: pos, heading: robot.heading, trail: List.of(_trail)),
               ),
             ),
+            // Readouts and status on top, component buttons beneath them,
+            // keeping the middle of the view clear for the rover.
             Positioned(
               left: 12,
               top: 12,
-              child: Glass(
-                child: Flex(
-                  // Stack the readouts on phones so they clear the status panel.
-                  direction: c.maxWidth >= 600 ? Axis.horizontal : Axis.vertical,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: c.maxWidth >= 600 ? 14 : 4,
-                  children: [
-                    _Readout('HDG', '${heading.round().toString().padLeft(3, '0')}°'),
-                    _Readout('X', '${pos.dx.toStringAsFixed(2)} m'),
-                    _Readout('Y', '${pos.dy.toStringAsFixed(2)} m'),
-                  ],
-                ),
+              right: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 8,
+                children: [
+                  // Side by side when they fit; status drops below on narrow screens.
+                  SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      runSpacing: 8,
+                      children: [
+                        Glass(
+                          child: Flex(
+                            // Stack the readouts on phones so they clear the status panel.
+                            direction: c.maxWidth >= 600 ? Axis.horizontal : Axis.vertical,
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            spacing: c.maxWidth >= 600 ? 14 : 4,
+                            children: [
+                              _Readout('HDG', '${heading.round().toString().padLeft(3, '0')}°'),
+                              _Readout('X', '${pos.dx.toStringAsFixed(2)} m'),
+                              _Readout('Y', '${pos.dy.toStringAsFixed(2)} m'),
+                            ],
+                          ),
+                        ),
+                        const ViewportStatus(),
+                      ],
+                    ),
+                  ),
+                  const ComponentStrip(),
+                ],
               ),
             ),
-            const Positioned(right: 12, top: 12, child: ViewportStatus()),
             Positioned(
               left: 12,
               bottom: 12,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      nudge(Icons.undo_rounded, const Offset(-1, 0), 'Rotate left'),
-                      const SizedBox(width: 6),
-                      nudge(Icons.keyboard_arrow_up, const Offset(0, -1), 'Forward'),
-                      const SizedBox(width: 6),
-                      nudge(Icons.redo_rounded, const Offset(1, 0), 'Rotate right'),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  nudge(Icons.keyboard_arrow_down, const Offset(0, 1), 'Reverse'),
-                ],
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: active ? 1 : 0.45,
+                child: DPad(buttonSize: padButton, enabled: active, onChanged: _setPad),
               ),
             ),
             Positioned(

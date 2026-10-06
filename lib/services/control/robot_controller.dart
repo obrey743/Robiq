@@ -228,21 +228,21 @@ class RobotController extends ChangeNotifier {
 
   /// Moves one joint by [delta] degrees (step jog).
   void stepJoint(int joint, double delta) {
-    if (!canJog) return;
+    if (!canJog || joint >= _joints.length) return;
     _setJoint(joint, _joints[joint] + delta);
     notifyListeners();
   }
 
   /// Sets one joint directly (e.g. from a slider).
   void setJoint(int joint, double angle) {
-    if (!canJog) return;
+    if (!canJog || joint >= _joints.length) return;
     _setJoint(joint, angle);
     notifyListeners();
   }
 
   /// Hold-to-run continuous jog. Call [stopJog] when the button is released.
   void startJog(int joint, int direction) {
-    if (!canJog) return;
+    if (!canJog || joint >= _joints.length) return;
     _jogJoint = joint;
     _jogDir = direction.sign;
     _startTicker();
@@ -407,6 +407,8 @@ class RobotController extends ChangeNotifier {
     final reported = _connection.device?.jointCount ?? 0;
     final count = reported > 0 ? reported : AppConstants.defaultJointCount;
     if (_joints.length == count) return;
+    // The jogged joint may no longer exist.
+    if (_jogJoint != null && _jogJoint! >= count) stopJog();
     _joints = List.generate(count, (i) => i < _joints.length ? _joints[i] : 90);
   }
 

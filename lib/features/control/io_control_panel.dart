@@ -6,6 +6,7 @@ import '../../data/protocol/robiq_protocol.dart';
 import '../../services/connection/connection_manager.dart';
 import '../../services/control/robot_controller.dart';
 import '../../shared/widgets/ui.dart';
+import '../components/component_button.dart';
 
 /// Generic GPIO panel for ESP32 / Arduino boards: digital output tiles and
 /// PWM channels. Outputs are live whenever the controller is powered.
@@ -41,6 +42,8 @@ class _IoControlPanelState extends State<IoControlPanel> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       children: [
+        const SectionHeader('Components'),
+        const ComponentStrip(wrap: true),
         SectionHeader(
           'Digital outputs',
           trailing: AppButton(

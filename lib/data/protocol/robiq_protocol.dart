@@ -48,6 +48,10 @@ class RobiqCommand {
 sealed class RobiqMessage {
   const RobiqMessage();
 
+  /// Upper bound on the joint count a device may report, so a bad `info`
+  /// message can't build an unusable control screen.
+  static const maxJoints = 12;
+
   /// Parses one line. Returns `null` for blank or malformed lines so that a
   /// noisy serial link never crashes the app.
   static RobiqMessage? parse(String line) {
@@ -58,16 +62,19 @@ sealed class RobiqMessage {
       if (json is! Map<String, dynamic>) return null;
       switch (json['type']) {
         case 'telemetry':
-          final data = (json['data'] as Map<String, dynamic>? ?? {});
+          final data = json['data'];
+          if (data is! Map) return null;
           return TelemetryMessage({
             for (final e in data.entries)
-              if (e.value is num) e.key: (e.value as num).toDouble(),
+              if (e.value is num && (e.value as num).isFinite) '${e.key}': (e.value as num).toDouble(),
           });
         case 'info':
+          final name = json['name'];
+          final joints = json['joints'];
           return InfoMessage(
-            name: json['name'] as String?,
+            name: name is String && name.isNotEmpty ? name : null,
             kind: DeviceKind.values.asNameMap()[json['kind']] ?? DeviceKind.generic,
-            jointCount: json['joints'] as int? ?? 0,
+            jointCount: joints is num && joints.isFinite ? joints.toInt().clamp(0, maxJoints) : 0,
           );
         case 'pong':
           return const PongMessage();
@@ -104,15 +111,21 @@ class LogMessage extends RobiqMessage {
 
 /// Splits an incoming byte/text stream into complete lines.
 class LineBuffer {
+  LineBuffer({this.maxLineLength = 4096});
+
+  /// A partial line longer than this is dropped, so a device that never sends
+  /// a newline (wrong baud rate, binary output) can't grow memory forever.
+  final int maxLineLength;
+
   final _buffer = StringBuffer();
 
   Iterable<String> add(String chunk) sync* {
     _buffer.write(chunk);
     final text = _buffer.toString();
     final parts = text.split('\n');
-    _buffer
-      ..clear()
-      ..write(parts.removeLast());
+    final rest = parts.removeLast();
+    _buffer.clear();
+    if (rest.length <= maxLineLength) _buffer.write(rest);
     yield* parts;
   }
 }

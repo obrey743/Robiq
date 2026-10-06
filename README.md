@@ -29,7 +29,8 @@ ROBIQ works with many kinds of robots and embedded systems. It suits robotics pr
 |---------|-------------|
 | **Bluetooth LE** | Scan for and connect to devices using the Nordic UART Service or HM-10 (`FFE0/FFE1`) modules |
 | **Wi-Fi** | Connect to any device that runs a WebSocket server (e.g. `ws://192.168.4.1:81`) |
-| **Rover control** | Virtual joystick with rate-limited commands, an adjustable max speed and an emergency stop |
+| **Rover control** | Hold-to-drive D-pad (forward, back, left, right; arrow keys or WASD on desktop) and a virtual joystick, with rate-limited commands, an adjustable max speed and an emergency stop |
+| **Component buttons** | Your own buttons for lights, horn, fans, pumps and more. Each switches a GPIO pin, either toggled or held, and everything switches off on E-stop |
 | **Robotic arm control** | A slider for each servo joint, a home position, and pose save/recall |
 | **GPIO panel** | Toggle digital pins and drive PWM outputs on ESP32/Arduino boards |
 | **Live telemetry** | Every numeric value the device reports is shown and graphed in real time |
